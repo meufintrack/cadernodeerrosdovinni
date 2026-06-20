@@ -2013,7 +2013,7 @@ function renderRevision(){
   const dailyBanner=dailyPool.length>0
     ?(dailyDoneToday
       ?`<div class="daily-done-banner">✅ Revisão diária concluída hoje! ${dailyPool.length} cards mais difíceis revisados.</div>`
-      :`<div class="daily-banner"><div class="daily-banner-ico">🔥</div><div class="daily-banner-body"><div class="daily-banner-title">Revisão Diária — ${dailyPool.length} cards mais difíceis</div><div class="daily-banner-sub">Os cards que você mais erra. Recomendado todo dia.</div></div><button class="daily-banner-btn" onclick="startDailyRev()">Iniciar agora →</button></div>`)
+      :`<div class="daily-banner"><div class="daily-banner-ico">🔥</div><div class="daily-banner-body"><div class="daily-banner-title">Revisão Diária — ${dailyPool.length} cards ainda em risco</div><div class="daily-banner-sub">Os que você mais erra e ainda não dominou. Some da lista depois de 3 acertos seguidos.</div></div><button class="daily-banner-btn" onclick="startDailyRev()">Iniciar agora →</button></div>`)
     :'';
   return `<div class="view">
     <div style="margin-bottom:20px"><div class="section-title" style="font-size:24px;font-weight:900">Revisão</div><div style="font-size:13px;color:var(--t2);margin-top:3px">Aprendizagem ativa — cards errados vão para o final</div></div>
@@ -2078,16 +2078,41 @@ function renderDifficultCards(){
   return topicTabsHTML+cardsHTML;
 }
 
+const DAILY_MASTERY_STREAK=3; // 3 acertos seguidos = já tá no intervalo de 14+ dias, sai da revisão diária
 function buildDailyPool(n){
-  const allStats=Object.values(S.cardStats||{}).filter(c=>c.wrongCount>0);
-  if(!allStats.length) return [];
-  return allStats.slice().sort((a,b)=>b.wrongCount-a.wrongCount).slice(0,n)
-    .map(c=>({p:c.p,r:c.r,area:c.area||'cm',titulo:c.titulo||'',topicId:c.topicId||''}));
+  const now=Date.now();
+  const candidates=Object.values(S.cardStats||{}).filter(c=>{
+    if(!(c.wrongCount>0)) return false; // só entra quem já errou alguma vez
+    const dueDate=c.dueDate?new Date(c.dueDate).getTime():0;
+    const overdue=!c.dueDate||dueDate<=now;
+    const mastered=(c.srsStreak||0)>=DAILY_MASTERY_STREAK && !overdue;
+    return !mastered; // dominado e ainda dentro do prazo -> não precisa hoje
+  });
+  if(!candidates.length) return [];
+  return candidates.slice().sort((a,b)=>{
+    const aDue=a.dueDate?new Date(a.dueDate).getTime():0;
+    const bDue=b.dueDate?new Date(b.dueDate).getTime():0;
+    const aOverdue=!a.dueDate||aDue<=now;
+    const bOverdue=!b.dueDate||bDue<=now;
+    if(aOverdue&&!bOverdue) return -1;
+    if(!aOverdue&&bOverdue) return 1;
+    const streakDiff=(a.srsStreak||0)-(b.srsStreak||0); // streak menor (mais fraco) primeiro
+    if(streakDiff!==0) return streakDiff;
+    return b.wrongCount-a.wrongCount; // desempate: quem mais errou no histórico
+  }).slice(0,n)
+    .map(c=>{
+      const dueDate=c.dueDate?new Date(c.dueDate).getTime():0;
+      return {p:c.p,r:c.r,area:c.area||'cm',titulo:c.titulo||'',topicId:c.topicId||'',overdue:!c.dueDate||dueDate<=now,dueDate,srsStreak:c.srsStreak||0};
+    });
 }
 
 function startDailyRev(){
   const pool=shuffle(buildDailyPool(20));
-  if(!pool.length){toast('📭 Nenhum card difícil ainda — comece revisando!');return;}
+  if(!pool.length){
+    const hasAnyWrong=Object.values(S.cardStats||{}).some(c=>c.wrongCount>0);
+    toast(hasAnyWrong?'🏆 Tudo dominado por enquanto! Nenhum card difícil pendente hoje.':'📭 Nenhum card difícil ainda — comece revisando!');
+    return;
+  }
   S.rev={...S.rev,active:true,completed:false,pool,idx:0,flipped:false,wrong:[],round:1,correct:0,unsureCnt:0,wrongCnt:0,totalCards:pool.length,wrongStats:{},dailyMode:true};
   S.revSubView='setup';
   render();
