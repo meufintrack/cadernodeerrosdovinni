@@ -588,6 +588,7 @@ select.ed-inp option{background:var(--card)}
         <div id="syncArea"></div>
         <button class="theme-btn" onclick="openGlobalSearch()" title="Busca rápida (Ctrl+K)">🔎</button>
         <button class="tn-import" onclick="nav('import')">✨ Importar Notion</button>
+        <button class="theme-btn" onclick="toggleFullscreen()" id="fsBtn" title="Tela cheia">⛶</button>
         <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
       </div>
     </header>
@@ -1050,10 +1051,34 @@ function updateTopicAcerto(id,val){
 }
 function toggleBand(id){S.bandOpen[id]=!S.bandOpen[id];saveAll();renderSidebar();}
 function toggleSb(){
-  const sb=document.getElementById('sidebar'),ov=document.getElementById('sbOverlay');
-  const isOpen=sb.classList.toggle('open');
-  ov.style.display=isOpen?'block':'none';
+  const sb=document.getElementById('sidebar'),ov=document.getElementById('sbOverlay'),mw=document.getElementById('mainWrap');
+  if(window.innerWidth<=860){
+    const isOpen=sb.classList.toggle('open');
+    ov.style.display=isOpen?'block':'none';
+  } else {
+    const collapsed=sb.classList.toggle('hidden');
+    mw.classList.toggle('full',collapsed);
+    localStorage.setItem('vm_sb_collapsed',collapsed?'1':'0');
+  }
 }
+function applySbPref(){
+  if(window.innerWidth<=860) return; // mobile sempre começa fechado (gaveta)
+  if(localStorage.getItem('vm_sb_collapsed')==='1'){
+    document.getElementById('sidebar')?.classList.add('hidden');
+    document.getElementById('mainWrap')?.classList.add('full');
+  }
+}
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen?.().catch(()=>{});
+  } else {
+    document.exitFullscreen?.();
+  }
+}
+document.addEventListener('fullscreenchange',()=>{
+  const btn=document.getElementById('fsBtn');
+  if(btn) btn.textContent=document.fullscreenElement?'🗗':'⛶';
+});
 function closeSb(){
   document.getElementById('sidebar')?.classList.remove('open');
   const ov=document.getElementById('sbOverlay'); if(ov) ov.style.display='none';
@@ -2565,7 +2590,7 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 /* ============================================================
    INIT
 ============================================================ */
-load();render();renderSidebar();updateNav();renderSyncArea();
+load();render();renderSidebar();updateNav();renderSyncArea();applySbPref();
 // Close sidebar when clicking main content on narrow screens
 document.getElementById('mainWrap')?.addEventListener('click', function(e){
   const sb = document.getElementById('sidebar');
