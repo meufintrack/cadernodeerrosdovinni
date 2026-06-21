@@ -2,7 +2,7 @@
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Caderno de Erros · VM · ENAMED 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -338,12 +338,18 @@ select.ed-inp option{background:var(--card)}
 .btn-xs{padding:4px 9px;font-size:11px;border-radius:6px}
 
 /* === FAB === */
-.fab{position:fixed;bottom:26px;right:26px;z-index:100;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
-.fab-btn{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--rose));border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(232,83,122,.4);transition:all .2s;display:flex;align-items:center;justify-content:center}
+.fab{position:fixed;bottom:calc(26px + env(safe-area-inset-bottom));right:26px;z-index:100;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.fab-btn{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--rose));border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(232,83,122,.4);transition:all .2s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .fab-btn:hover{transform:scale(1.08);box-shadow:0 6px 26px rgba(232,83,122,.5)}
-.fab-panel{background:var(--card);border:1.5px solid var(--sep);border-radius:var(--r);padding:16px;width:320px;box-shadow:var(--shadow-lg);display:none;animation:fabIn .18s ease both}
+.fab-panel{background:var(--card);border:1.5px solid var(--sep);border-radius:var(--r);padding:16px;width:min(320px,calc(100vw - 52px));max-height:calc(100vh - 140px);overflow-y:auto;box-shadow:var(--shadow-lg);display:none;animation:fabIn .18s ease both}
 .fab-panel.open{display:block}
 @keyframes fabIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* === MOBILE BOTTOM TAB BAR === */
+.mobile-tabbar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:90;background:var(--card);border-top:1px solid var(--sep);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 16px rgba(0,0,0,.06)}
+.mtb-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px 2px;color:var(--t3);font-size:9.5px;font-weight:700;border-radius:9px;transition:color .15s}
+.mtb-ico{font-size:18px;line-height:1}
+.mtb-item.active{color:var(--pink)}
 .fab-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .fab-title{font-size:14px;font-weight:900;color:var(--pink)}
 .fab-close{width:24px;height:24px;background:var(--card2);border:1px solid var(--sep);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:var(--t3)}
@@ -381,8 +387,21 @@ select.ed-inp option{background:var(--card)}
   .main-wrap{margin-left:0!important}
   .sb-overlay{display:block!important}
   .tn-links{display:none}
-  .page{padding:16px 16px 80px}
+  .tn-stat{display:none}
+  .tn-import{display:none}
+  #fsBtn{display:none}
+  .page{padding:16px 16px calc(86px + env(safe-area-inset-bottom))}
   .imp-mode-grid{grid-template-columns:1fr}
+  .mobile-tabbar{display:flex}
+  .fab{bottom:calc(82px + env(safe-area-inset-bottom))}
+  #toast{bottom:calc(82px + env(safe-area-inset-bottom))}
+  [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  input,select,textarea{font-size:16px!important}
+  .ed-inp,.ed-ta,.sb-search,.gs-inp{font-size:16px}
+}
+@media(min-width:861px){
+  .mobile-tabbar{display:none!important}
 }
 .sb-overlay{display:none;position:fixed;inset:0;background:transparent;z-index:59}
 
@@ -598,6 +617,15 @@ select.ed-inp option{background:var(--card)}
     </div>
   </div>
 </div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-tabbar" id="mobileTabbar">
+  <button class="mtb-item" data-view="dashboard" onclick="nav('dashboard')"><span class="mtb-ico">🏠</span><span>Início</span></button>
+  <button class="mtb-item" data-view="todos" onclick="nav('todos')"><span class="mtb-ico">📒</span><span>Caderno</span></button>
+  <button class="mtb-item" data-view="revision" onclick="nav('revision')"><span class="mtb-ico">🔄</span><span>Revisão</span></button>
+  <button class="mtb-item" data-view="import" onclick="nav('import')"><span class="mtb-ico">✨</span><span>Importar</span></button>
+  <button class="mtb-item" data-view="settings" onclick="nav('settings')"><span class="mtb-ico">⚙️</span><span>Config</span></button>
+</nav>
 
 <!-- FAB -->
 <div class="fab" id="fab">
