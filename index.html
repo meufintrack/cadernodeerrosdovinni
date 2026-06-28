@@ -59,6 +59,28 @@ button{cursor:pointer;font-family:inherit;border:none;background:none}
 .tn-stat em{color:var(--pink);font-style:normal}
 .tn-import{font-size:12px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--pink),var(--rose));border:none;border-radius:8px;padding:6px 13px;cursor:pointer;transition:opacity .15s;white-space:nowrap}
 .tn-import:hover{opacity:.88}
+.tn-claude{font-size:12px;font-weight:700;color:var(--t2);background:var(--card2);border:1px solid var(--sep);border-radius:8px;padding:6px 13px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tn-claude:hover{border-color:var(--blue);color:var(--blue)}
+.ci-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
+.ci-overlay.open{display:flex}
+.ci-modal{background:var(--card);border:1.5px solid var(--sep);border-radius:var(--r);width:min(520px,100%);max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);display:flex;flex-direction:column}
+.ci-head{padding:18px 20px 14px;border-bottom:1px solid var(--sep);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ci-title{font-size:14px;font-weight:800;color:var(--t1);letter-spacing:-.02em}
+.ci-close{font-size:18px;color:var(--t3);cursor:pointer;padding:2px 6px;border-radius:6px;transition:color .15s}
+.ci-close:hover{color:var(--t1)}
+.ci-body{padding:16px 20px;flex:1}
+.ci-label{font-size:11.5px;font-weight:700;color:var(--t2);margin-bottom:6px;display:block}
+.ci-hint{font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.5}
+.ci-textarea{width:100%;min-height:180px;background:var(--card2);border:1.5px solid var(--sep);border-radius:10px;padding:12px;font-size:12px;font-family:monospace;color:var(--t1);outline:none;resize:vertical;transition:border .15s}
+.ci-textarea:focus{border-color:var(--blue)}
+.ci-textarea::placeholder{color:var(--t3)}
+.ci-footer{padding:12px 20px 16px;border-top:1px solid var(--sep);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+.ci-btn-cancel{font-size:12.5px;font-weight:700;color:var(--t2);background:var(--card2);border:1px solid var(--sep);border-radius:8px;padding:8px 16px;cursor:pointer;transition:all .15s}
+.ci-btn-cancel:hover{border-color:var(--t3)}
+.ci-btn-import{font-size:12.5px;font-weight:700;color:#fff;background:var(--blue);border:none;border-radius:8px;padding:8px 18px;cursor:pointer;transition:opacity .15s}
+.ci-btn-import:hover{opacity:.85}
+.ci-preview{margin-top:12px;padding:10px 12px;background:var(--pink-pale);border:1px solid var(--pink-light);border-radius:8px;font-size:11.5px;color:var(--t2);display:none}
+.ci-preview.show{display:block}
 .tn-sb-toggle{width:32px;height:32px;background:var(--card2);border:1px solid var(--sep);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t3);cursor:pointer;transition:all .15s;flex-shrink:0}
 .tn-sb-toggle:hover{color:var(--t1)}
 .theme-btn{width:32px;height:32px;background:var(--card2);border:1px solid var(--sep);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:all .15s;color:var(--t3);flex-shrink:0}
@@ -609,6 +631,7 @@ select.ed-inp option{background:var(--card)}
         <button class="theme-btn" onclick="openGlobalSearch()" title="Busca rápida (Ctrl+K)">🔎</button>
         <button class="tn-import" onclick="nav('import')">✨ Importar Notion</button>
         <button class="theme-btn" onclick="toggleFullscreen()" id="fsBtn" title="Tela cheia">⛶</button>
+        <button class="tn-claude" onclick="openClaudeImport()" title="Importar erros do Claude">📥 Claude</button>
         <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
       </div>
     </header>
@@ -634,6 +657,26 @@ select.ed-inp option{background:var(--card)}
 </div>
 
 <!-- GLOBAL SEARCH -->
+<!-- CLAUDE IMPORT MODAL -->
+<div class="ci-overlay" id="ciOverlay" onclick="if(event.target===this)closeClaudeImport()">
+  <div class="ci-modal">
+    <div class="ci-head">
+      <span class="ci-title">📥 Importar erros do Claude</span>
+      <span class="ci-close" onclick="closeClaudeImport()">✕</span>
+    </div>
+    <div class="ci-body">
+      <span class="ci-label">Cole o JSON gerado pelo Claude:</span>
+      <div class="ci-hint">No final da sessão de estudos, peça ao Claude: <strong>"gerar JSON do dia"</strong> → copie → cole aqui.</div>
+      <textarea class="ci-textarea" id="ciTextarea" placeholder='{"source":"claude_caderno","errors":[...]}' oninput="previewClaudeImport()"></textarea>
+      <div class="ci-preview" id="ciPreview"></div>
+    </div>
+    <div class="ci-footer">
+      <button class="ci-btn-cancel" onclick="closeClaudeImport()">Cancelar</button>
+      <button class="ci-btn-import" onclick="doClaudeImport()">✅ Importar</button>
+    </div>
+  </div>
+</div>
+
 <div class="gs-overlay" id="gsOverlay" onclick="if(event.target===this)closeGlobalSearch()">
   <div class="gs-box">
     <input class="gs-inp" id="gsInput" placeholder="Buscar tema ou erro..." oninput="renderGlobalSearch(this.value)">
@@ -2510,8 +2553,233 @@ Regras:
 }
 
 /* ============================================================
-   GLOBAL SEARCH (Ctrl+K)
+   CLAUDE IMPORT
 ============================================================ */
+const CLAUDE_TOPIC_MAP = {
+  // Built-in topics
+  'síndrome metabólica i':    {id:'sinmet1',area:'cm'},
+  'has e dm':                 {id:'sinmet1',area:'cm'},
+  'hipertensão':              {id:'sinmet1',area:'cm'},
+  'diabetes':                 {id:'sinmet2',area:'cm'},
+  'síndrome metabólica ii':   {id:'sinmet2',area:'cm'},
+  'tireoide':                 {id:'endoc1',area:'cm'},
+  'hipotireoidismo':          {id:'endoc1',area:'cm'},
+  'hipertireoidismo':         {id:'endoc1',area:'cm'},
+  'paratireoide':             {id:'endoc2',area:'cm'},
+  'adrenal':                  {id:'endoc2',area:'cm'},
+  'cushing':                  {id:'endoc2',area:'cm'},
+  'endocrinologia ii':        {id:'endoc2',area:'cm'},
+  'pneumonia':                {id:'pneumo',area:'cm'},
+  'derrame pleural':          {id:'pneumo',area:'cm'},
+  'tuberculose':              {id:'tosse',area:'cm'},
+  'iltb':                     {id:'tosse',area:'cm'},
+  'tosse crônica':            {id:'tosse',area:'cm'},
+  'síndromes febris':         {id:'febre',area:'cm'},
+  'leptospirose':             {id:'febre',area:'cm'},
+  'dengue':                   {id:'febre',area:'cm'},
+  'leishmaniose':             {id:'febre',area:'cm'},
+  'febre':                    {id:'febre',area:'cm'},
+  'choque':                   {id:'uti',area:'cm'},
+  'pcr':                      {id:'uti',area:'cm'},
+  'uti':                      {id:'uti',area:'cm'},
+  'terapia intensiva':        {id:'uti',area:'cm'},
+  'anemias i':                {id:'anem1',area:'cm'},
+  'anemia carencial':         {id:'anem1',area:'cm'},
+  'anemias ii':               {id:'anem2',area:'cm'},
+  'anemia hemolítica':        {id:'anem2',area:'cm'},
+  'artrites':                 {id:'artrit',area:'cm'},
+  'artrite':                  {id:'artrit',area:'cm'},
+  'febre reumática':          {id:'artrit',area:'cm'},
+  'vasculites':               {id:'vasc',area:'cm'},
+  'imunodeficiência':         {id:'imuno',area:'cm'},
+  'hiv':                      {id:'imuno',area:'cm'},
+  'geriatria':                {id:'geri',area:'cm'},
+  // GO
+  'sangramento da 1ª metade': {id:'custom_1780808376573',area:'go'},
+  'mola':                     {id:'custom_1780808376573',area:'go'},
+  'dgt':                      {id:'custom_1780808376573',area:'go'},
+  'ntg':                      {id:'custom_1780808376573',area:'go'},
+  'sangramento gestacional i':{id:'sang1',area:'go'},
+  'placenta':                 {id:'sang1',area:'go'},
+  'sangramento gestacional ii':{id:'sang2',area:'go'},
+  'dpp':                      {id:'sang2',area:'go'},
+  'doença clínica na gravidez':{id:'dclg',area:'go'},
+  'sifilis':                  {id:'dclg',area:'go'},
+  'pré-eclampsia':            {id:'dclg',area:'go'},
+  'pré eclampsia':            {id:'dclg',area:'go'},
+  'eclampsia':                {id:'dclg',area:'go'},
+  'parto':                    {id:'parto',area:'go'},
+  'sofrimento fetal':         {id:'sofr',area:'go'},
+  'puerpério':                {id:'sofr',area:'go'},
+  'fórcipe':                  {id:'sofr',area:'go'},
+  'amenorreia':               {id:'amen',area:'go'},
+  'sop':                      {id:'amen',area:'go'},
+  'infertilidade':            {id:'amen',area:'go'},
+  'anticoncepção':            {id:'anticn',area:'go'},
+  'mioma':                    {id:'anticn',area:'go'},
+  'endometriose':             {id:'anticn',area:'go'},
+  'colo uterino':             {id:'onco2',area:'go'},
+  'hpv':                      {id:'onco2',area:'go'},
+  'endométrio':               {id:'onco2',area:'go'},
+  'vulva':                    {id:'onco2',area:'go'},
+  'mama':                     {id:'onco1',area:'go'},
+  'ovário':                   {id:'onco1',area:'go'},
+  'birads':                   {id:'onco1',area:'go'},
+  'avaliação inicial da gestação':{id:'avgest',area:'go'},
+  'pré-natal':                {id:'avgest',area:'go'},
+  'pré natal':                {id:'avgest',area:'go'},
+  // Preventiva
+  'imunizações':              {id:'custom_1781143210748',area:'ped'},
+  'imunização':               {id:'custom_1781143210748',area:'ped'},
+  'calendário vacinal':       {id:'custom_1781143210748',area:'ped'},
+  'vacina':                   {id:'custom_1781143210748',area:'ped'},
+  'eapv':                     {id:'custom_1781143210748',area:'ped'},
+  'imunidade coletiva':       {id:'custom_1781143210748',area:'ped'},
+  'sarampo':                  {id:'exan',area:'mp'},
+  'exantemáticas':            {id:'exan',area:'mp'},
+  'rubéola':                  {id:'exan',area:'mp'},
+  'caxumba':                  {id:'exan',area:'mp'},
+  'sus':                      {id:'custom_1781322180832',area:'mp'},
+  'aps':                      {id:'custom_1781322180832',area:'mp'},
+  'atenção primária':         {id:'custom_1781322180832',area:'mp'},
+  'política de saúde':        {id:'custom_1781322180832',area:'mp'},
+  'medidas de saúde coletiva':{id:'msc',area:'mp'},
+  'epidemiologia':            {id:'epi',area:'mp'},
+  'forest plot':              {id:'epi',area:'mp'},
+  'estudo epidemiológico':    {id:'epi',area:'mp'},
+  'vigilância':               {id:'vig',area:'mp'},
+  'ética médica':             {id:'vig',area:'mp'},
+  'violência':                {id:'vig',area:'mp'},
+  'dst':                      {id:'dst',area:'mp'},
+  'ist':                      {id:'dst',area:'mp'},
+  'intoxicação':              {id:'intox',area:'mp'},
+  'toxicologia':              {id:'intox',area:'mp'},
+  'animais peçonhentos':      {id:'intox',area:'mp'},
+  // Pediatria
+  'neonatologia':             {id:'neona',area:'ped'},
+  'reanimação neonatal':      {id:'neona',area:'ped'},
+  'itu na infância':          {id:'custom_1781141012660',area:'ped'},
+  'itu pediátrica':           {id:'custom_1781141012660',area:'ped'},
+  'hidronefrose':             {id:'custom_1781141012660',area:'ped'},
+  'uropediatria':             {id:'custom_1781141012660',area:'ped'},
+  'síndromes respiratórias inf i':{id:'resp1',area:'ped'},
+  'síndromes respiratórias inf ii':{id:'resp2',area:'ped'},
+  'crescimento':              {id:'cresc',area:'ped'},
+  // Cirurgia
+  'dor abdominal':            {id:'dolora',area:'cg'},
+  'pancreatite':              {id:'dolora',area:'cg'},
+  'diverticular':             {id:'dolora',area:'cg'},
+  'hemorragia digestiva':     {id:'hdig1',area:'cg'},
+  'proctologia':              {id:'hdig2',area:'cg'},
+  'hepatite':                 {id:'ict1',area:'cg'},
+  'vias biliares':            {id:'ict2',area:'cg'},
+  'colecistite':              {id:'ict2',area:'cg'},
+  'coledocolitíase':          {id:'ict2',area:'cg'},
+  'hipertensão porta':        {id:'htp',area:'cg'},
+  'cirrose':                  {id:'htp',area:'cg'},
+  'ascite':                   {id:'htp',area:'cg'},
+  'insuficiência hepática':   {id:'inh',area:'cg'},
+  'oclusão intestinal':       {id:'ocl',area:'cg'},
+  'diarréia':                 {id:'diar',area:'cg'},
+  'diarreia':                 {id:'diar',area:'cg'},
+  'dispepsia':                {id:'disp',area:'cg'},
+  'disfagia':                 {id:'disf',area:'cg'},
+  'trauma':                   {id:'trauma',area:'cg'},
+  'perioperatório':           {id:'periop',area:'cg'},
+  // Esp
+  'ortopedia':                {id:'orto',area:'esp'},
+  'oftalmologia':             {id:'oftal',area:'esp'},
+  'psiquiatria':              {id:'psiq1',area:'esp'},
+  'climatério':               {id:'clim',area:'esp'},
+  'osteoporose':              {id:'clim',area:'esp'},
+  // Raiva (febre)
+  'raiva':                    {id:'febre',area:'cm'},
+  'soro antirrábico':         {id:'febre',area:'cm'},
+  'profilaxia raiva':         {id:'febre',area:'cm'},
+};
+
+function resolveClaudeTopic(topicHint, area){
+  if(!topicHint) return null;
+  const hint = topicHint.toLowerCase();
+  // Direct match
+  for(const [key, val] of Object.entries(CLAUDE_TOPIC_MAP)){
+    if(hint.includes(key)) return val;
+  }
+  return null;
+}
+
+function openClaudeImport(){
+  document.getElementById('ciOverlay').classList.add('open');
+  document.getElementById('ciTextarea').value='';
+  document.getElementById('ciPreview').classList.remove('show');
+  setTimeout(()=>document.getElementById('ciTextarea').focus(),50);
+}
+
+function closeClaudeImport(){
+  document.getElementById('ciOverlay').classList.remove('open');
+}
+
+function previewClaudeImport(){
+  const raw = document.getElementById('ciTextarea').value.trim();
+  const prev = document.getElementById('ciPreview');
+  if(!raw){prev.classList.remove('show');return;}
+  try{
+    const data = JSON.parse(raw);
+    if(data.source!=='claude_caderno'||!Array.isArray(data.errors)) throw new Error();
+    prev.innerHTML = `<strong>✅ ${data.errors.length} erro(s) detectado(s)</strong> — pronto para importar.`;
+    prev.style.background='var(--pink-pale)';
+    prev.style.borderColor='var(--pink-light)';
+    prev.classList.add('show');
+  } catch {
+    if(raw.length>10){
+      prev.innerHTML='<strong>⚠️ JSON inválido</strong> — verifique se copiou tudo corretamente.';
+      prev.style.background='rgba(229,72,77,.07)';
+      prev.style.borderColor='rgba(229,72,77,.2)';
+      prev.classList.add('show');
+    } else {
+      prev.classList.remove('show');
+    }
+  }
+}
+
+function doClaudeImport(){
+  const raw = document.getElementById('ciTextarea').value.trim();
+  let data;
+  try{ data=JSON.parse(raw); } catch{ toast('⚠️ JSON inválido'); return; }
+  if(data.source!=='claude_caderno'||!Array.isArray(data.errors)){toast('⚠️ Formato não reconhecido');return;}
+  let added=0, skipped=0;
+  data.errors.forEach(e=>{
+    if(!e.titulo) return;
+    // Resolve topicId
+    let topicId = e.topicId;
+    let area = e.area||'cm';
+    if(!topicId||(!TOPICS.find(t=>t.id===topicId)&&!S.customTopics.find(t=>t.id===topicId))){
+      const resolved = resolveClaudeTopic(e.topicHint||e.titulo, area);
+      if(resolved){ topicId=resolved.id; area=resolved.area; }
+      else { topicId='febre'; } // fallback
+    }
+    const now = new Date().toISOString();
+    S.errors.push({
+      id: 'ce'+Date.now()+Math.random().toString(36).slice(2,6),
+      topicId, area,
+      titulo: (e.titulo||'').replace(/^Título:\s*/i,'').trim(),
+      meuErro: (e.meuErro||'').replace(/^Meu erro:\s*/i,'').trim(),
+      deveSaber: e.deveSaber||'',
+      prioridade: e.prioridade||'media',
+      flashcards: e.flashcards||[],
+      revisado: false,
+      enunciado: e.enunciado||'',
+      fonte: 'claude',
+      createdAt: now,
+      updatedAt: now,
+    });
+    added++;
+  });
+  saveAll(); render(); renderSidebar(); updateTopStat();
+  closeClaudeImport();
+  toast(`✅ ${added} erro(s) importado(s) do Claude!`);
+}
+
 let gsActiveIdx=-1;
 function openGlobalSearch(){
   const ov=document.getElementById('gsOverlay'); if(!ov) return;
