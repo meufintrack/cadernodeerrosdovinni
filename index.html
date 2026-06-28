@@ -61,6 +61,8 @@ button{cursor:pointer;font-family:inherit;border:none;background:none}
 .tn-import:hover{opacity:.88}
 .tn-claude{font-size:12px;font-weight:700;color:var(--t2);background:var(--card2);border:1px solid var(--sep);border-radius:8px;padding:6px 13px;cursor:pointer;transition:all .15s;white-space:nowrap}
 .tn-claude:hover{border-color:var(--blue);color:var(--blue)}
+.tn-claude-link{font-size:12.5px;font-weight:700;color:var(--blue)!important;padding:5px 11px;border-radius:8px;transition:all .15s;cursor:pointer}
+.tn-claude-link:hover{background:rgba(74,124,229,.1)}
 .ci-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
 .ci-overlay.open{display:flex}
 .ci-modal{background:var(--card);border:1.5px solid var(--sep);border-radius:var(--r);width:min(520px,100%);max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);display:flex;flex-direction:column}
@@ -624,6 +626,7 @@ select.ed-inp option{background:var(--card)}
         <span class="tn-link" onclick="nav('import')" data-view="import">Importar Notion</span>
         <span class="tn-link" onclick="nav('revision')" data-view="revision">Revisão</span>
         <span class="tn-link" onclick="nav('settings')" data-view="settings">Config</span>
+        <span class="tn-link tn-claude-link" onclick="openClaudeImport()" title="Importar erros do Claude">📥 Claude</span>
       </nav>
       <div class="tn-right">
         <div class="tn-stat" id="topStat"><em>0</em> erros · <em>0</em> fc</div>
@@ -631,7 +634,6 @@ select.ed-inp option{background:var(--card)}
         <button class="theme-btn" onclick="openGlobalSearch()" title="Busca rápida (Ctrl+K)">🔎</button>
         <button class="tn-import" onclick="nav('import')">✨ Importar Notion</button>
         <button class="theme-btn" onclick="toggleFullscreen()" id="fsBtn" title="Tela cheia">⛶</button>
-        <button class="tn-claude" onclick="openClaudeImport()" title="Importar erros do Claude">📥 Claude</button>
         <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
       </div>
     </header>
